@@ -5,7 +5,7 @@
   >
     <!-- Portada del libro -->
     <div
-      class="book-cover h-80 rounded-t-lg flex items-center justify-center text-white text-2xl font-bold relative overflow-hidden"
+      class="book-cover h-48 rounded-t-lg flex items-center justify-center text-white text-lg font-bold relative overflow-hidden"
       :style="{ backgroundColor: getBookColor(libro.color_portada) }"
     >
       <!-- Imagen de portada si existe -->
@@ -41,12 +41,12 @@
     ></div>
 
     <!-- Información del libro -->
-    <div class="p-4 relative">
-      <h3 class="text-lg font-bold text-gray-900 mb-2">{{ libro.nombre }}</h3>
-      <p class="text-sm text-gray-600 mb-1">
+    <div class="p-3 relative">
+      <h3 class="text-base font-bold text-gray-900 mb-1 leading-tight">{{ libro.nombre }}</h3>
+      <p class="text-xs text-gray-600 mb-1">
         <span class="font-semibold">Autor:</span> {{ libro.autor }}
       </p>
-      <p class="text-sm text-gray-600 mb-1">
+      <p class="text-xs text-gray-600 mb-2">
         <span class="font-semibold">Versión:</span> {{ libro.version }}
       </p>
 
@@ -71,74 +71,58 @@
       </div>
 
       <!-- Calificación promedio -->
-      <div v-if="libro.calificacion_promedio && libro.calificacion_promedio > 0" class="mt-3 flex items-center gap-2">
-        <span class="text-sm font-semibold text-gray-700">Calificación:</span>
+      <div v-if="libro.calificacion_promedio && libro.calificacion_promedio > 0" class="mt-2 flex items-center gap-1">
+        <span class="text-xs font-semibold text-gray-700">Calificación:</span>
         <div class="flex items-center gap-1">
-          <span class="text-yellow-500 text-lg">⭐</span>
-          <span class="text-sm font-bold text-gray-900">{{ libro.calificacion_promedio.toFixed(1) }}</span>
+          <span class="text-yellow-500 text-sm">⭐</span>
+          <span class="text-xs font-bold text-gray-900">{{ libro.calificacion_promedio.toFixed(1) }}</span>
           <span class="text-xs text-gray-500">/5</span>
         </div>
       </div>
 
       <!-- Botones de acciones visibles (siempre visibles para usuarios autenticados) -->
-      <div v-if="isAuthenticated" class="mt-4 pt-3 border-t border-gray-200">
-        <div class="flex justify-around gap-2">
+      <div v-if="isAuthenticated" class="mt-3">
+        <div class="flex justify-center gap-1 flex-wrap">
           <button
             @click.stop="$emit('toggle-favorito', libro)"
-            :class="['action-btn-visible', { 'active': libro.es_favorito }]"
+            :class="['action-btn-icon', { 'active': libro.es_favorito }]"
             :title="libro.es_favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'"
           >
-            <span class="text-xl">{{ libro.es_favorito ? '❤️' : '🤍' }}</span>
-            <span class="text-xs">Favorito</span>
+            {{ libro.es_favorito ? '❤️' : '🤍' }}
           </button>
           <button
             @click.stop="$emit('toggle-pendiente', libro)"
-            :class="['action-btn-visible', { 'active': libro.pendiente_leer }]"
+            :class="['action-btn-icon', { 'active': libro.pendiente_leer }]"
             :title="libro.pendiente_leer ? 'Quitar de pendientes' : 'Marcar como pendiente'"
           >
-            <span class="text-xl">{{ libro.pendiente_leer ? '📚' : '📖' }}</span>
-            <span class="text-xs">Pendiente</span>
+            {{ libro.pendiente_leer ? '📚' : '📖' }}
           </button>
           <button
             @click.stop="openRatingModal"
-            class="action-btn-visible rating-btn-visible"
+            class="action-btn-icon rating-btn-icon"
             title="Calificar libro"
           >
-            <span class="text-xl">⭐</span>
-            <span class="text-xs">Calificar</span>
+            ⭐
           </button>
-        </div>
-        
-        <!-- Botones de gestión (solo para el dueño del libro) -->
-        <div v-if="isOwner" class="flex gap-2 mt-3">
           <button
+            v-if="isOwner"
             @click.stop="$emit('edit', libro)"
-            class="action-btn-visible edit-btn-visible"
+            class="action-btn-icon edit-btn-icon"
             title="Editar libro"
           >
-            <span class="text-xl">✏️</span>
-            <span class="text-xs">Editar</span>
+            ✏️
           </button>
           <button
+            v-if="isOwner"
             @click.stop="$emit('delete', libro.id)"
-            class="action-btn-visible delete-btn-visible"
+            class="action-btn-icon delete-btn-icon"
             title="Eliminar libro"
           >
-            <span class="text-xl">🗑️</span>
-            <span class="text-xs">Eliminar</span>
+            🗑️
           </button>
         </div>
       </div>
 
-      <!-- Páginas del libro -->
-      <div class="flex space-x-1 mb-3 mt-3">
-        <div
-          v-for="i in 5"
-          :key="i"
-          class="w-1 h-8 rounded-sm opacity-60"
-          :style="{ backgroundColor: getBookColor(libro.color_portada) }"
-        ></div>
-      </div>
     </div>
   </div>
 
@@ -226,7 +210,10 @@ const getImageUrl = (imagenPortada: string | null | undefined) => {
   
   // Si es una ruta relativa, construir URL completa
   if (imagenPortada.startsWith('/media/') || imagenPortada.startsWith('media/')) {
-    return `http://localhost:8000${imagenPortada.startsWith('/') ? '' : '/'}${imagenPortada}`
+    // Construir URL del backend basada en la URL actual (igual que api.ts)
+    const currentUrl = new URL(window.location.href)
+    const backendUrl = `${currentUrl.protocol}//${currentUrl.hostname}:8000`
+    return `${backendUrl}${imagenPortada.startsWith('/') ? '' : '/'}${imagenPortada}`
   }
   
   // Si es una URL completa, devolverla tal cual
@@ -366,62 +353,64 @@ const submitRating = () => {
   font-size: 14px;
 }
 
-/* Botones de acciones visibles (siempre visibles) */
-.action-btn-visible {
+/* Botones de acciones - Solo iconos */
+.action-btn-icon {
+  width: 28px;
+  height: 28px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s ease;
-  flex: 1;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.action-btn-visible:hover {
-  background: #f3f4f6;
-  border-color: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.action-btn-icon:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.action-btn-visible.active {
+.action-btn-icon.active {
   background: #eff6ff;
-  border-color: #3b82f6;
-  border-width: 2px;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  transform: scale(1.1);
 }
 
-.rating-btn-visible {
+.rating-btn-icon {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #fbbf24;
 }
 
-.rating-btn-visible:hover {
+.rating-btn-icon:hover {
   background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
-  border-color: #f59e0b;
 }
 
-.edit-btn-visible {
+.edit-btn-icon {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-color: #3b82f6;
 }
 
-.edit-btn-visible:hover {
+.edit-btn-icon:hover {
   background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
-  border-color: #2563eb;
 }
 
-.delete-btn-visible {
+.delete-btn-icon {
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border-color: #ef4444;
 }
 
-.delete-btn-visible:hover {
+.delete-btn-icon:hover {
   background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-  border-color: #dc2626;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 640px) {
+  .action-btn-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
 }
 
 /* Modal de calificación */

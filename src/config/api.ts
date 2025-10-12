@@ -1,6 +1,18 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// Función para obtener la URL del backend dinámicamente
+const getBackendUrl = () => {
+  // Si hay variable de entorno definida, usarla
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+
+  // Construir URL del backend basada en la URL actual
+  const currentUrl = new URL(window.location.href)
+  return `${currentUrl.protocol}//${currentUrl.hostname}:8000`
+}
+
+const API_BASE_URL = getBackendUrl()
 
 console.log('API_BASE_URL:', API_BASE_URL)
 console.log('VITE_API_BASE_URL env:', import.meta.env.VITE_API_BASE_URL)

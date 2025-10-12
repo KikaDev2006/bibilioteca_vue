@@ -1,34 +1,44 @@
 <template>
   <Layout>
+    <template #filters="{ closeSidebar }">
+      <button 
+        @click="resetAllFilters(); closeSidebar?.()"
+        :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': !mostrarSoloMisLibros && !mostrarSoloFavoritos && !mostrarSoloPendientes }]"
+      >
+        <span class="mr-3 text-xl">📚</span>
+        Todos los Libros
+      </button>
+      <button 
+        @click="toggleMisLibros(); closeSidebar?.()"
+        :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloMisLibros }]"
+      >
+        <span class="mr-3 text-xl">📖</span>
+        Mis Libros
+      </button>
+      <button 
+        @click="toggleFavoritos(); closeSidebar?.()"
+        :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloFavoritos }]"
+      >
+        <span class="mr-3 text-xl">❤️</span>
+        Favoritos
+      </button>
+      <button 
+        @click="togglePendientes(); closeSidebar?.()"
+        :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloPendientes }]"
+      >
+        <span class="mr-3 text-xl">📖</span>
+        Pendientes
+      </button>
+      <button 
+        @click="createLibro(); closeSidebar?.()" 
+        class="flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors"
+      >
+        <span class="mr-3 text-xl">➕</span>
+        Nuevo Libro
+      </button>
+    </template>
+
     <div class="minimal-container">
-      <!-- Header con botón de crear -->
-      <div class="books-header">
-        <h1 class="page-title">Biblioteca Digital</h1>
-        <div class="flex items-center gap-3">
-          <button 
-            v-if="authStore.isAuthenticated" 
-            @click="toggleMisLibros"
-            :class="['btn-secondary', { 'btn-active': mostrarSoloMisLibros }]"
-          >
-            {{ mostrarSoloMisLibros ? '📚 Todos los Libros' : '📖 Mis Libros' }}
-          </button>
-          <button 
-            v-if="authStore.isAuthenticated" 
-            @click="toggleFavoritos"
-            :class="['btn-secondary', { 'btn-active': mostrarSoloFavoritos }]"
-          >
-            {{ mostrarSoloFavoritos ? '📚 Todos' : '❤️ Favoritos' }}
-          </button>
-          <button 
-            v-if="authStore.isAuthenticated" 
-            @click="togglePendientes"
-            :class="['btn-secondary', { 'btn-active': mostrarSoloPendientes }]"
-          >
-            {{ mostrarSoloPendientes ? '📚 Todos' : '📖 Pendientes' }}
-          </button>
-          <button v-if="authStore.isAuthenticated" @click="createLibro" class="btn-primary">+ Nuevo Libro</button>
-        </div>
-      </div>
 
       <div v-if="loading" class="text-center py-8">
         <div
@@ -71,9 +81,9 @@
         <!-- Libros filtrados por género -->
         <div class="filtered-books-section">
           <h2 class="section-title">
-            {{ selectedGenero || 'Todos los libros' }}
+            {{ tituloSeccion }}
           </h2>
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 mt-4">
             <BookCard
               v-for="libro in librosFiltrados"
               :key="libro.id"
@@ -324,6 +334,20 @@ const librosFiltrados = computed(() => {
   return filtrados
 })
 
+// Computed property para el título de la sección
+const tituloSeccion = computed(() => {
+  if (mostrarSoloFavoritos.value) {
+    return selectedGenero.value ? `Favoritos - ${selectedGenero.value}` : 'Mis Favoritos'
+  }
+  if (mostrarSoloPendientes.value) {
+    return selectedGenero.value ? `Pendientes - ${selectedGenero.value}` : 'Pendientes de Leer'
+  }
+  if (mostrarSoloMisLibros.value) {
+    return selectedGenero.value ? `Mis Libros - ${selectedGenero.value}` : 'Mis Libros'
+  }
+  return selectedGenero.value || 'Todos los libros'
+})
+
 // Función para obtener color de género
 const getGenreColor = (index: number) => {
   const colors = [
@@ -570,6 +594,15 @@ const toggleMisLibros = async () => {
   
   // Resetear el filtro de género al cambiar de vista
   selectedGenero.value = null
+}
+
+// Función para reiniciar todos los filtros
+const resetAllFilters = async () => {
+  mostrarSoloFavoritos.value = false
+  mostrarSoloPendientes.value = false
+  mostrarSoloMisLibros.value = false
+  selectedGenero.value = null
+  await loadLibros()
 }
 
 // Función para alternar filtro de favoritos
@@ -845,143 +878,108 @@ onMounted(async () => {
   padding: 0;
 }
 
-.books-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 0;
-  border-bottom: 1px solid #e5e5e5;
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: white;
-  color: #3b82f6;
-  border: 2px solid #3b82f6;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background: #eff6ff;
-  transform: translateY(-1px);
-}
-
-.btn-secondary.btn-active {
-  background: #3b82f6;
-  color: white;
-}
-
 /* Estilos para el índice de géneros */
 .books-container {
   margin: 0;
   padding: 0;
 }
 
-/* Cards de géneros */
 .genre-cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+}
+
+/* Scroll horizontal en móvil */
+@media (max-width: 768px) {
+  .genre-cards-container {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .genre-cards-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .genre-cards-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .genre-cards-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  .genre-cards-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
 }
 
 .genre-card {
-  border-radius: 12px;
-  padding: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.2s ease;
+  background: white;
+  border: 2px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .genre-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: currentColor;
 }
 
 .genre-card.active {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-  border: 3px solid white;
-}
-
-.genre-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.genre-card:hover::before {
-  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: white;
+  font-weight: 600;
 }
 
 .genre-card-content {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 8px;
   color: white;
-  position: relative;
-  z-index: 1;
 }
 
 .genre-card-icon {
-  font-size: 32px;
-  margin-bottom: 4px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .genre-card-name {
-  font-size: 16px;
-  font-weight: 600;
-  text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
 }
 
 .genre-card-count {
-  font-size: 14px;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.3);
-  padding: 4px 12px;
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 24px;
+  text-align: center;
 }
 
-/* Sección de libros filtrados */
 .filtered-books-section {
   margin-top: 24px;
 }
