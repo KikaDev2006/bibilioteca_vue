@@ -207,11 +207,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '@/config/api'
 import Layout from '@/components/Layout.vue'
-import type { Libro } from '@/types'
+import type { Libro, AccionUsuarioIn } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -243,20 +243,92 @@ const currentPage = computed(() => {
   return paginas.value[currentPageIndex.value] || null
 })
 
+// Variable para controlar si es la primera carga
+const isInitialLoad = ref(true)
+
 // Cargar libro y páginas al montar
 onMounted(async () => {
   const libroId = route.params.id
   if (libroId) {
     await loadLibro(Number(libroId))
     await loadPaginas(Number(libroId))
+    
+    console.log('=== DEBUG NAVEGACIÓN ===')
+    console.log('Usuario autenticado:', authStore.isAuthenticated)
+    console.log('Libro cargado:', selectedLibro.value)
+    console.log('Páginas cargadas:', paginas.value)
+    console.log('IDs de páginas:', paginas.value.map((p: any) => p.id))
+    
+    // Si el usuario está autenticado y el libro tiene última página leída, ir a esa página
+    if (authStore.isAuthenticated && selectedLibro.value?.ultima_pagina_leida_id) {
+      console.log('Intentando navegar a última página leída...')
+      console.log('ID buscado:', selectedLibro.value.ultima_pagina_leida_id)
+      
+      // Buscar el índice de la página por su ID
+      const paginaIndex = paginas.value.findIndex((p: any) => {
+        console.log('Comparando:', p.id, '===', selectedLibro.value?.ultima_pagina_leida_id, '?', p.id === selectedLibro.value?.ultima_pagina_leida_id)
+        return p.id === selectedLibro.value?.ultima_pagina_leida_id
+      })
+      
+      console.log('Índice encontrado:', paginaIndex)
+      console.log('Total de páginas:', paginas.value.length)
+      
+      if (paginaIndex >= 0) {
+        console.log('✅ Navegando a índice:', paginaIndex, '(página', paginaIndex + 1, ')')
+        currentPageIndex.value = paginaIndex
+      } else {
+        console.log('❌ No se encontró la página con ID:', selectedLibro.value.ultima_pagina_leida_id)
+      }
+    } else {
+      console.log('No se navega porque:')
+      console.log('- Usuario autenticado:', authStore.isAuthenticated)
+      console.log('- Tiene ultima_pagina_leida_id:', selectedLibro.value?.ultima_pagina_leida_id)
+    }
+    
+    // Después de la carga inicial, habilitar el watch
+    setTimeout(() => {
+      isInitialLoad.value = false
+    }, 500)
+  }
+})
+
+// Watch para actualizar la última página leída cuando cambie la página actual
+watch(currentPageIndex, async (newIndex) => {
+  // No actualizar durante la carga inicial
+  if (isInitialLoad.value) return
+  
+  if (authStore.isAuthenticated && selectedLibro.value && paginas.value[newIndex]) {
+    const paginaActual = paginas.value[newIndex] as any
+    console.log('Actualizando última página leída - Número:', newIndex + 1, 'ID:', paginaActual.id)
+    await updateUltimaPaginaLeida(newIndex + 1, paginaActual.id)
   }
 })
 
 // Cargar información del libro
 const loadLibro = async (libroId: number) => {
   try {
-    const response = await api.get(`/libro/${libroId}`)
-    selectedLibro.value = response.data
+    // Si el usuario está autenticado, usar el endpoint que incluye acciones
+    const endpoint = authStore.isAuthenticated 
+      ? `/libro/todos-autenticado` 
+      : `/libro/${libroId}`
+    
+    if (authStore.isAuthenticated) {
+      // Cargar todos los libros y buscar el específico
+      const response = await api.get(endpoint)
+      const libro = response.data.find((l: any) => l.id === libroId)
+      if (libro) {
+        selectedLibro.value = libro
+        console.log('Libro cargado con acciones:', libro)
+        console.log('ultima_pagina_leida_id:', libro.ultima_pagina_leida_id)
+      } else {
+        // Fallback al endpoint normal
+        const fallbackResponse = await api.get(`/libro/${libroId}`)
+        selectedLibro.value = fallbackResponse.data
+      }
+    } else {
+      const response = await api.get(endpoint)
+      selectedLibro.value = response.data
+    }
   } catch (error) {
     console.error('Error cargando libro:', error)
   }
@@ -278,6 +350,41 @@ const loadPaginas = async (libroId: number) => {
 // Volver a la biblioteca
 const goBack = () => {
   router.push('/')
+}
+
+// Función para actualizar la última página leída
+const updateUltimaPaginaLeida = async (numeroPagina: number, paginaId: number) => {
+  if (!selectedLibro.value) return
+  
+  try {
+    const accionData: AccionUsuarioIn = {
+      libro_id: selectedLibro.value.id,
+      es_favorito: selectedLibro.value.es_favorito || false,
+      pendiente_leer: selectedLibro.value.pendiente_leer || false,
+      ultima_pagina_leida_id: paginaId,
+      calificacion: 0
+    }
+    
+    // Intentar actualizar primero
+    try {
+      await api.put(`/acciones_usuario/libro/${selectedLibro.value.id}`, accionData)
+    } catch (error: any) {
+      // Si no existe (404), crear nueva acción
+      if (error.response?.status === 404) {
+        await api.post('/acciones_usuario/', accionData)
+      } else {
+        throw error
+      }
+    }
+    
+    // Actualizar el estado local
+    if (selectedLibro.value) {
+      selectedLibro.value.ultima_pagina_leida = numeroPagina
+      selectedLibro.value.ultima_pagina_leida_id = paginaId
+    }
+  } catch (error) {
+    console.error('Error actualizando última página leída:', error)
+  }
 }
 
 // Navegación de páginas

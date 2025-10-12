@@ -12,6 +12,20 @@
           >
             {{ mostrarSoloMisLibros ? '📚 Todos los Libros' : '📖 Mis Libros' }}
           </button>
+          <button 
+            v-if="authStore.isAuthenticated" 
+            @click="toggleFavoritos"
+            :class="['btn-secondary', { 'btn-active': mostrarSoloFavoritos }]"
+          >
+            {{ mostrarSoloFavoritos ? '📚 Todos' : '❤️ Favoritos' }}
+          </button>
+          <button 
+            v-if="authStore.isAuthenticated" 
+            @click="togglePendientes"
+            :class="['btn-secondary', { 'btn-active': mostrarSoloPendientes }]"
+          >
+            {{ mostrarSoloPendientes ? '📚 Todos' : '📖 Pendientes' }}
+          </button>
           <button v-if="authStore.isAuthenticated" @click="createLibro" class="btn-primary">+ Nuevo Libro</button>
         </div>
       </div>
@@ -60,82 +74,17 @@
             {{ selectedGenero || 'Todos los libros' }}
           </h2>
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-4">
-            <div
+            <BookCard
               v-for="libro in librosFiltrados"
               :key="libro.id"
-              @click="selectLibro(libro)"
-              class="book-card bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-            >
-              <!-- Portada del libro -->
-              <div
-                class="book-cover h-80 rounded-t-lg flex items-center justify-center text-white text-2xl font-bold relative overflow-hidden"
-                :style="{ backgroundColor: getBookColor(libro.color_portada) }"
-              >
-                <!-- Imagen de portada si existe -->
-                <img
-                  v-if="getImageUrl((libro as any).imagen_portada)"
-                  :src="getImageUrl((libro as any).imagen_portada)"
-                  :alt="libro.nombre"
-                  class="absolute inset-0 w-full h-full object-cover"
-                />
-                
-                <!-- Fallback con icono y nombre si no hay imagen -->
-                <template v-else>
-                  <div
-                    class="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-20"
-                  ></div>
-                  <div class="relative z-10 text-center">
-                    <div class="text-4xl mb-2">📖</div>
-                    <div class="text-sm opacity-90">{{ libro.nombre }}</div>
-                  </div>
-                </template>
-              </div>
-
-              <!-- Lomo del libro -->
-              <div
-                class="book-spine h-2"
-                :style="{ backgroundColor: getBookColor(libro.color_portada) }"
-              ></div>
-
-              <!-- Información del libro -->
-              <div class="p-4 relative">
-                <!-- Botones de gestión (solo para el dueño del libro) -->
-                <div v-if="authStore.isAuthenticated && authStore.user?.id === libro.usuario_id" class="book-actions">
-                  <button
-                    @click.stop="editLibro(libro)"
-                    class="mini-btn edit-btn"
-                    title="Editar libro"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    @click.stop="deleteLibro(libro.id)"
-                    class="mini-btn delete-btn"
-                    title="Eliminar libro"
-                  >
-                    🗑️
-                  </button>
-                </div>
-
-                <h3 class="text-lg font-bold text-gray-900 mb-2">{{ libro.nombre }}</h3>
-                <p class="text-sm text-gray-600 mb-1">
-                  <span class="font-semibold">Autor:</span> {{ libro.autor }}
-                </p>
-                <p class="text-sm text-gray-600 mb-1">
-                  <span class="font-semibold">Versión:</span> {{ libro.version }}
-                </p>
-
-                <!-- Páginas del libro -->
-                <div class="flex space-x-1 mb-3 mt-3">
-                  <div
-                    v-for="i in 5"
-                    :key="i"
-                    class="w-1 h-8 rounded-sm opacity-60"
-                    :style="{ backgroundColor: getBookColor(libro.color_portada) }"
-                  ></div>
-                </div>
-              </div>
-            </div>
+              :libro="libro"
+              @click="selectLibro"
+              @edit="editLibro"
+              @delete="deleteLibro"
+              @toggle-favorito="toggleFavorito"
+              @toggle-pendiente="togglePendiente"
+              @rate="rateLibro"
+            />
           </div>
         </div>
       </div>
@@ -308,7 +257,8 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '@/config/api'
 import Layout from '@/components/Layout.vue'
-import type { Libro } from '@/types'
+import BookCard from '@/components/BookCard.vue'
+import type { Libro, AccionUsuarioIn } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -322,6 +272,8 @@ const showEditModal = ref(false)
 const editingLibro = ref<Libro | null>(null)
 const selectedGenero = ref<string | null>(null)
 const mostrarSoloMisLibros = ref(false)
+const mostrarSoloFavoritos = ref(false)
+const mostrarSoloPendientes = ref(false)
 const imagePreview = ref<string | null>(null)
 const imageFile = ref<File | null>(null)
 
@@ -356,16 +308,12 @@ const librosPorGenero = computed(() => {
     }))
 })
 
-// Computed property para filtrar libros por género seleccionado y "Mis Libros"
+// Computed property para filtrar libros por género seleccionado
 const librosFiltrados = computed(() => {
   let filtrados = libros.value
   
-  // Filtrar por "Mis Libros" si está activo
-  if (mostrarSoloMisLibros.value && authStore.user) {
-    filtrados = filtrados.filter((libro) => libro.usuario_id === authStore.user?.id)
-  }
-  
-  // Filtrar por género si hay uno seleccionado
+  // Si estamos mostrando favoritos o pendientes, los libros ya vienen filtrados del backend
+  // Solo aplicar filtro de género si hay uno seleccionado
   if (selectedGenero.value) {
     filtrados = filtrados.filter((libro) => {
       const generoNombre = libro.genero || 'Sin género'
@@ -539,7 +487,11 @@ const loadLibros = async () => {
   try {
     console.log('Cargando libros...')
     loading.value = true
-    const response = await api.get('/libro/')
+    
+    // Si el usuario está autenticado, usar la ruta que incluye las acciones del usuario
+    const endpoint = authStore.isAuthenticated ? '/libro/todos-autenticado' : '/libro/'
+    const response = await api.get(endpoint)
+    
     console.log('Respuesta:', response.data)
     libros.value = response.data
   } catch (error) {
@@ -602,6 +554,12 @@ const deleteLibro = async (libroId: number) => {
 const toggleMisLibros = async () => {
   mostrarSoloMisLibros.value = !mostrarSoloMisLibros.value
   
+  // Desactivar otros filtros
+  if (mostrarSoloMisLibros.value) {
+    mostrarSoloFavoritos.value = false
+    mostrarSoloPendientes.value = false
+  }
+  
   // Si se activa "Mis Libros", cargar desde el endpoint específico
   if (mostrarSoloMisLibros.value) {
     await loadMisLibros()
@@ -614,6 +572,44 @@ const toggleMisLibros = async () => {
   selectedGenero.value = null
 }
 
+// Función para alternar filtro de favoritos
+const toggleFavoritos = async () => {
+  mostrarSoloFavoritos.value = !mostrarSoloFavoritos.value
+  
+  // Desactivar otros filtros
+  if (mostrarSoloFavoritos.value) {
+    mostrarSoloPendientes.value = false
+    mostrarSoloMisLibros.value = false
+    // Cargar libros favoritos desde el backend
+    await loadFavoritos()
+  } else {
+    // Volver a cargar todos los libros
+    await loadLibros()
+  }
+  
+  // Resetear el filtro de género
+  selectedGenero.value = null
+}
+
+// Función para alternar filtro de pendientes
+const togglePendientes = async () => {
+  mostrarSoloPendientes.value = !mostrarSoloPendientes.value
+  
+  // Desactivar otros filtros
+  if (mostrarSoloPendientes.value) {
+    mostrarSoloFavoritos.value = false
+    mostrarSoloMisLibros.value = false
+    // Cargar libros pendientes desde el backend
+    await loadPendientes()
+  } else {
+    // Volver a cargar todos los libros
+    await loadLibros()
+  }
+  
+  // Resetear el filtro de género
+  selectedGenero.value = null
+}
+
 // Función para cargar solo mis libros
 const loadMisLibros = async () => {
   try {
@@ -622,6 +618,32 @@ const loadMisLibros = async () => {
     libros.value = response.data
   } catch (error) {
     console.error('Error cargando mis libros:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Función para cargar libros favoritos
+const loadFavoritos = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/libro/favoritos/list')
+    libros.value = response.data
+  } catch (error) {
+    console.error('Error cargando favoritos:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Función para cargar libros pendientes
+const loadPendientes = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/libro/pendientes/list')
+    libros.value = response.data
+  } catch (error) {
+    console.error('Error cargando pendientes:', error)
   } finally {
     loading.value = false
   }
@@ -704,6 +726,111 @@ const closeModal = () => {
   resetForm()
 }
 
+// Función helper para crear o actualizar acción de usuario
+const createOrUpdateAccion = async (accionData: AccionUsuarioIn) => {
+  try {
+    // Intentar actualizar primero
+    await api.put(`/acciones_usuario/libro/${accionData.libro_id}`, accionData)
+  } catch (error: any) {
+    // Si no existe (404), crear nueva acción
+    if (error.response?.status === 404) {
+      await api.post('/acciones_usuario/', accionData)
+    } else {
+      throw error
+    }
+  }
+}
+
+// Función para alternar favorito
+const toggleFavorito = async (libro: Libro) => {
+  if (!authStore.isAuthenticated) return
+  
+  try {
+    const accionData: AccionUsuarioIn = {
+      libro_id: libro.id,
+      es_favorito: !libro.es_favorito,
+      ultima_pagina_leida_id: libro.ultima_pagina_leida_id || undefined,
+      pendiente_leer: libro.pendiente_leer || false,
+      calificacion: 0
+    }
+    
+    await createOrUpdateAccion(accionData)
+    
+    // Recargar la lista apropiada según el filtro activo
+    if (mostrarSoloFavoritos.value) {
+      await loadFavoritos()
+    } else if (mostrarSoloPendientes.value) {
+      await loadPendientes()
+    } else if (mostrarSoloMisLibros.value) {
+      await loadMisLibros()
+    } else {
+      await loadLibros()
+    }
+  } catch (error) {
+    console.error('Error actualizando favorito:', error)
+    alert('Error al actualizar favorito')
+  }
+}
+
+// Función para alternar pendiente de leer
+const togglePendiente = async (libro: Libro) => {
+  if (!authStore.isAuthenticated) return
+  
+  try {
+    const accionData: AccionUsuarioIn = {
+      libro_id: libro.id,
+      es_favorito: libro.es_favorito || false,
+      ultima_pagina_leida_id: libro.ultima_pagina_leida_id || undefined,
+      pendiente_leer: !libro.pendiente_leer,
+      calificacion: 0
+    }
+    
+    await createOrUpdateAccion(accionData)
+    
+    // Recargar la lista apropiada según el filtro activo
+    if (mostrarSoloFavoritos.value) {
+      await loadFavoritos()
+    } else if (mostrarSoloPendientes.value) {
+      await loadPendientes()
+    } else if (mostrarSoloMisLibros.value) {
+      await loadMisLibros()
+    } else {
+      await loadLibros()
+    }
+  } catch (error) {
+    console.error('Error actualizando pendiente:', error)
+    alert('Error al actualizar pendiente de leer')
+  }
+}
+
+// Función para calificar libro
+const rateLibro = async (libroId: number, rating: number) => {
+  if (!authStore.isAuthenticated) return
+  
+  try {
+    const libro = libros.value.find(l => l.id === libroId)
+    if (!libro) return
+    
+    const accionData: AccionUsuarioIn = {
+      libro_id: libroId,
+      es_favorito: libro.es_favorito || false,
+      ultima_pagina_leida_id: libro.ultima_pagina_leida_id || undefined,
+      pendiente_leer: libro.pendiente_leer || false,
+      calificacion: rating
+    }
+    
+    await createOrUpdateAccion(accionData)
+    
+    // Recargar libros para obtener la calificación promedio actualizada
+    await loadLibros()
+    
+    alert(`Libro calificado con ${rating} estrella${rating > 1 ? 's' : ''}!`)
+  } catch (error) {
+    console.error('Error calificando libro:', error)
+    alert('Error al calificar el libro')
+  }
+}
+
 // Cargar automáticamente al montar el componente
 onMounted(async () => {
   await Promise.all([loadLibros(), loadGeneros()])
@@ -711,61 +838,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.book-card {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.book-card:hover {
-  transform: translateY(-4px) rotateX(5deg);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.book-cover {
-  position: relative;
-  background: linear-gradient(135deg, var(--book-color) 0%, var(--book-color-dark) 100%);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
-}
-
-.book-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.book-spine {
-  background: linear-gradient(90deg, var(--book-color) 0%, var(--book-color-dark) 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.book-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 70%
-  );
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.book-card:hover::before {
-  opacity: 1;
-}
-
 /* Estilos minimalistas */
 .minimal-container {
   max-width: 100%;
@@ -825,79 +897,6 @@ onMounted(async () => {
 .btn-secondary.btn-active {
   background: #3b82f6;
   color: white;
-}
-
-.books-grid {
-  margin: 0;
-  padding: 0;
-}
-
-.books-grid .grid {
-  margin: 0;
-  padding: 0;
-}
-
-.book-card {
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.book-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-/* Botones de gestión de libros */
-.book-actions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.book-card:hover .book-actions {
-  opacity: 1;
-}
-
-.mini-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.edit-btn {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.edit-btn:hover {
-  background: #1976d2;
-  color: white;
-  transform: scale(1.1);
-}
-
-.delete-btn {
-  background: #ffebee;
-  color: #d32f2f;
-}
-
-.delete-btn:hover {
-  background: #d32f2f;
-  color: white;
-  transform: scale(1.1);
 }
 
 /* Estilos para el índice de géneros */
