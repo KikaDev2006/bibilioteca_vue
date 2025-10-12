@@ -8,21 +8,21 @@
       </div>
 
       <!-- Profile Card -->
-      <div v-else-if="user" class="relative mt-16 mb-32 max-w-sm mx-auto">
+      <div v-else-if="usuario" class="relative mt-16 mb-32 max-w-sm mx-auto">
         <div class="rounded overflow-hidden shadow-md bg-white">
           <!-- Avatar -->
           <div class="absolute -mt-20 w-full flex justify-center">
             <div class="h-32 w-32">
               <div class="rounded-full bg-gradient-to-br from-green-400 to-emerald-600 h-full w-full shadow-md flex items-center justify-center text-white text-5xl font-bold">
-                {{ user.nombre_completo.charAt(0).toUpperCase() }}
+                {{ usuario.nombre_completo.charAt(0).toUpperCase() }}
               </div>
             </div>
           </div>
 
           <!-- Content -->
           <div class="px-6 mt-16">
-            <h1 class="font-bold text-3xl text-center mb-1">{{ user.nombre_completo }}</h1>
-            <p class="text-gray-800 text-sm text-center">{{ user.email }}</p>
+            <h1 class="font-bold text-3xl text-center mb-1">{{ usuario.nombre_completo }}</h1>
+            <p class="text-gray-800 text-sm text-center">{{ usuario.email }}</p>
             
             <!-- User Info -->
             <div class="text-center text-gray-600 text-base pt-3 font-normal space-y-2">
@@ -33,14 +33,14 @@
                   <line x1="8" y1="2" x2="8" y2="6"></line>
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                Miembro desde {{ new Date(user.created_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) }}
+                Miembro desde {{ new Date(usuario.created_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) }}
               </p>
               <p class="flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                Última actualización {{ new Date(user.updated_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) }}
+                Última actualización {{ new Date(usuario.updated_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) }}
               </p>
             </div>
 
@@ -126,14 +126,16 @@
 </template>
 
 <script setup lang="ts">
+
+
 import { ref, reactive, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import Layout from '@/components/Layout.vue'
 import type { UsuarioUpdate } from '@/types'
+
+import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 
-const { user, loading } = authStore
+const { user: usuario, loading } = authStore
 
 const showEditModal = ref(false)
 const error = ref('')
@@ -145,30 +147,28 @@ const form = reactive<UsuarioUpdate>({
 })
 
 onMounted(async () => {
-  if (!user.value) {
+  if (!usuario) {
     await authStore.getCurrentUser()
   }
-  // Inicializar el formulario con los datos del usuario
-  if (user.value) {
-    form.nombre_completo = user.value.nombre_completo
-    form.email = user.value.email
+  if (usuario) {
+    form.nombre_completo = usuario.nombre_completo || ''
+    form.email = usuario.email || ''
   }
 })
 
 const handleUpdate = async () => {
   error.value = ''
-  
+
   try {
-    // Solo enviar contraseña si se proporcionó
     const updateData: UsuarioUpdate = {
       nombre_completo: form.nombre_completo,
       email: form.email
     }
-    
+
     if (form.contraseña && form.contraseña.trim() !== '') {
       updateData.contraseña = form.contraseña
     }
-    
+
     await authStore.updateUser(updateData)
     closeModal()
   } catch (err: any) {
@@ -179,10 +179,9 @@ const handleUpdate = async () => {
 const closeModal = () => {
   showEditModal.value = false
   error.value = ''
-  // Resetear formulario
-  if (user.value) {
-    form.nombre_completo = user.value.nombre_completo
-    form.email = user.value.email
+  if (usuario) {
+    form.nombre_completo = usuario.nombre_completo || ''
+    form.email = usuario.email || ''
   }
   form.contraseña = ''
 }

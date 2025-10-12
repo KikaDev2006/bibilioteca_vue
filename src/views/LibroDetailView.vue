@@ -5,23 +5,23 @@
       <p class="mt-2 text-gray-600">Cargando libro...</p>
     </div>
 
-    <div v-else-if="libro" class="space-y-6">
+    <div v-else-if="currentLibro" class="space-y-6">
       <!-- Header del libro -->
       <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div 
           class="h-48 w-full"
-          :style="{ backgroundColor: libro.color_portada }"
+          :style="{ backgroundColor: currentLibro.color_portada }"
         ></div>
         <div class="p-6">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ libro.nombre }}</h1>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ currentLibro.nombre }}</h1>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
             <div>
-              <p><strong>Autor:</strong> {{ libro.autor }}</p>
-              <p><strong>Versión:</strong> {{ libro.version }}</p>
+              <p><strong>Autor:</strong> {{ currentLibro.autor }}</p>
+              <p><strong>Versión:</strong> {{ currentLibro.version }}</p>
             </div>
             <div>
-              <p><strong>Género:</strong> {{ libro.genero || 'Sin género' }}</p>
-              <p><strong>Creado:</strong> {{ new Date(libro.created_at).toLocaleDateString() }}</p>
+              <p><strong>Género:</strong> {{ currentLibro.genero || 'Sin género' }}</p>
+              <p><strong>Creado:</strong> {{ new Date(currentLibro.created_at).toLocaleDateString() }}</p>
             </div>
           </div>
         </div>
@@ -39,9 +39,9 @@
           </button>
         </div>
 
-        <div v-if="paginas.length > 0" class="space-y-4">
+        <div v-if="paginasStore.paginas.length > 0" class="space-y-4">
           <div 
-            v-for="pagina in paginas" 
+            v-for="pagina in paginasStore.paginas" 
             :key="pagina.id"
             class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
           >
@@ -165,9 +165,12 @@ const librosStore = useLibrosStore()
 const paginasStore = usePaginasStore()
 
 const { currentLibro, loading: libroLoading } = librosStore
-const { paginas, loading: paginasLoading } = paginasStore
+const { loading: paginasLoading } = paginasStore
 
-const loading = computed(() => libroLoading.value || paginasLoading.value)
+// Create a local ref that will hold the filtered pages for this book
+const paginas = ref<Pagina[]>([])
+
+const loading = computed(() => libroLoading || paginasLoading)
 
 const showCreatePaginaModal = ref(false)
 const showEditPaginaModal = ref(false)
@@ -186,7 +189,7 @@ onMounted(async () => {
     await librosStore.fetchLibro(libroId)
     await paginasStore.fetchPaginas()
     // Filtrar páginas del libro actual
-    const libroPaginas = paginas.value.filter(p => p.libro_id === libroId)
+    const libroPaginas = (paginasStore.paginas as any).value.filter((p: Pagina) => p.libro_id === libroId)
     paginas.value = libroPaginas
   }
 })
@@ -203,10 +206,9 @@ const editPagina = (pagina: Pagina) => {
 const deletePagina = async (id: number) => {
   if (confirm('¿Estás seguro de que quieres eliminar esta página?')) {
     await paginasStore.deletePagina(id)
-    // Recargar páginas del libro
-    const libroId = parseInt(route.params.id as string)
     await paginasStore.fetchPaginas()
-    const libroPaginas = paginas.value.filter(p => p.libro_id === libroId)
+    const libroId = parseInt(route.params.id as string)
+    const libroPaginas = (paginasStore.paginas as any).value.filter((p: Pagina) => p.libro_id === libroId)
     paginas.value = libroPaginas
   }
 }
@@ -225,7 +227,7 @@ const handlePaginaSubmit = async () => {
     closePaginaModal()
     // Recargar páginas del libro
     await paginasStore.fetchPaginas()
-    const libroPaginas = paginas.value.filter(p => p.libro_id === libroId)
+    const libroPaginas = (paginasStore.paginas as any).value.filter((p: Pagina) => p.libro_id === libroId)
     paginas.value = libroPaginas
   } catch (error) {
     console.error('Error al guardar página:', error)

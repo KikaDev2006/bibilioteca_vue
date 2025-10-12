@@ -73,7 +73,7 @@
             <div class="genre-card-content">
               <div class="genre-card-icon">{{ getGenreIcon(generoGroup.genero) }}</div>
               <div class="genre-card-name">{{ generoGroup.genero }}</div>
-              <div class="genre-card-count">{{ generoGroup.libros.length }}</div>
+              <div class="genre-card-count">{{ generoGroup.libros?.length || 0 }}</div>
             </div>
           </div>
         </div>
@@ -275,7 +275,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const libros = ref<Libro[]>([])
-const generos = ref([])
+const generos = ref<{ id: number; genero: string }[]>([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
@@ -546,7 +546,7 @@ const selectLibro = async (libro: Libro) => {
 const editLibro = (libro: Libro) => {
   editingLibro.value = libro
   form.nombre = libro.nombre
-  form.version = libro.version
+  form.version = String(libro.version)
   form.color_portada = libro.color_portada
   form.genero_id = libro.genero_id
   form.imagen_portada = (libro as any).imagen_portada || ''
@@ -746,8 +746,8 @@ const handleSubmit = async () => {
     await loadLibros()
   } catch (error) {
     console.error('Error guardando libro:', error)
-    console.error('Detalles del error:', error.response?.data)
-    alert('Error al guardar el libro: ' + (error.response?.data?.detail || error.message))
+    console.error('Detalles del error:', (error as any)?.response?.data)
+    alert('Error al guardar el libro: ' + ((error as any)?.response?.data?.detail || (error as any)?.message))
   }
 }
 

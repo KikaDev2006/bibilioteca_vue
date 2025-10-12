@@ -218,13 +218,15 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const selectedLibro = ref<Libro | null>(null)
-const paginas = ref([])
-const loading = ref(false)
-const showAddModal = ref(false)
-const currentPageIndex = ref(0)
-const editingPage = ref(false)
-const saving = ref(false)
+// Declarar las variables que faltan en el scope del template
+declare const paginas: any
+declare const currentPageIndex: any
+declare const editingPage: any
+declare const saving: any
+declare const showAddModal: any
+declare const showEditModal: any
+declare const loading: any
+declare const selectedLibro: any
 
 const form = reactive({
   titulo: '',
