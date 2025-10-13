@@ -219,14 +219,16 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // Declarar las variables que faltan en el scope del template
-declare const paginas: any
-declare const currentPageIndex: any
-declare const editingPage: any
-declare const saving: any
-declare const showAddModal: any
-declare const showEditModal: any
-declare const loading: any
-declare const selectedLibro: any
+// Ahora son refs reales en lugar de declaraciones
+
+const paginas = ref<any[]>([])
+const currentPageIndex = ref<number>(0)
+const editingPage = ref<boolean>(false)
+const saving = ref<boolean>(false)
+const showAddModal = ref<boolean>(false)
+const showEditModal = ref<boolean>(false)
+const loading = ref<boolean>(false)
+const selectedLibro = ref<Libro | null>(null)
 
 const form = reactive({
   titulo: '',
@@ -484,6 +486,7 @@ const handleSubmit = async () => {
 // Cerrar modal
 const closeModal = () => {
   showAddModal.value = false
+  showEditModal.value = false
   form.titulo = ''
   form.contenido = ''
   form.tipo = 'contenido'
