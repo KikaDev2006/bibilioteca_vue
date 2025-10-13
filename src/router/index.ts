@@ -59,11 +59,30 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/mis-libros',
+      name: 'mis-libros',
+      component: () => import('@/views/MisLibrosView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/favoritos',
+      name: 'favoritos',
+      component: () => import('@/views/FavoritosView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/pendientes',
+      name: 'pendientes',
+      component: () => import('@/views/PendientesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
       meta: { requiresAuth: true },
     },
+
   ],
 })
 

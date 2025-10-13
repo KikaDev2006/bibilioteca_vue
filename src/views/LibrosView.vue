@@ -82,6 +82,9 @@
         <div class="filtered-books-section">
           <h2 class="section-title">
             {{ tituloSeccion }}
+            <span v-if="librosFiltrados.length !== libros.length" class="text-sm font-normal text-gray-500">
+              ({{ librosFiltrados.length }} de {{ libros.length }} libros)
+            </span>
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 mt-4">
             <BookCard
@@ -263,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '@/config/api'
 import Layout from '@/components/Layout.vue'
@@ -286,6 +289,9 @@ const mostrarSoloFavoritos = ref(false)
 const mostrarSoloPendientes = ref(false)
 const imagePreview = ref<string | null>(null)
 const imageFile = ref<File | null>(null)
+
+// Estado para la búsqueda
+const searchQuery = ref('')
 
 const form = reactive({
   nombre: '',
@@ -318,10 +324,10 @@ const librosPorGenero = computed(() => {
     }))
 })
 
-// Computed property para filtrar libros por género seleccionado
+// Computed property para filtrar libros por género seleccionado y búsqueda
 const librosFiltrados = computed(() => {
   let filtrados = libros.value
-  
+
   // Si estamos mostrando favoritos o pendientes, los libros ya vienen filtrados del backend
   // Solo aplicar filtro de género si hay uno seleccionado
   if (selectedGenero.value) {
@@ -330,22 +336,38 @@ const librosFiltrados = computed(() => {
       return generoNombre === selectedGenero.value
     })
   }
-  
+
+  // Aplicar filtro de búsqueda por título
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtrados = filtrados.filter((libro) =>
+      libro.nombre.toLowerCase().includes(query)
+    )
+  }
+
   return filtrados
 })
 
 // Computed property para el título de la sección
 const tituloSeccion = computed(() => {
+  let titulo = ''
+
   if (mostrarSoloFavoritos.value) {
-    return selectedGenero.value ? `Favoritos - ${selectedGenero.value}` : 'Mis Favoritos'
+    titulo = selectedGenero.value ? `Favoritos - ${selectedGenero.value}` : 'Mis Favoritos'
+  } else if (mostrarSoloPendientes.value) {
+    titulo = selectedGenero.value ? `Pendientes - ${selectedGenero.value}` : 'Pendientes de Leer'
+  } else if (mostrarSoloMisLibros.value) {
+    titulo = selectedGenero.value ? `Mis Libros - ${selectedGenero.value}` : 'Mis Libros'
+  } else {
+    titulo = selectedGenero.value || 'Todos los libros'
   }
-  if (mostrarSoloPendientes.value) {
-    return selectedGenero.value ? `Pendientes - ${selectedGenero.value}` : 'Pendientes de Leer'
+
+  // Agregar información de búsqueda si está activa
+  if (searchQuery.value.trim()) {
+    titulo += ` (buscando: "${searchQuery.value}")`
   }
-  if (mostrarSoloMisLibros.value) {
-    return selectedGenero.value ? `Mis Libros - ${selectedGenero.value}` : 'Mis Libros'
-  }
-  return selectedGenero.value || 'Todos los libros'
+
+  return titulo
 })
 
 // Función para obtener color de género
@@ -867,6 +889,18 @@ const rateLibro = async (libroId: number, rating: number) => {
 // Cargar automáticamente al montar el componente
 onMounted(async () => {
   await Promise.all([loadLibros(), loadGeneros()])
+
+  // Agregar listener para eventos de búsqueda del Layout
+  const handleSearchEvent = (event: CustomEvent) => {
+    searchQuery.value = event.detail.query || ''
+  }
+
+  window.addEventListener('search-query', handleSearchEvent as EventListener)
+
+  // Cleanup listener cuando se desmonte el componente
+  onUnmounted(() => {
+    window.removeEventListener('search-query', handleSearchEvent as EventListener)
+  })
 })
 </script>
 
