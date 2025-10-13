@@ -1,29 +1,39 @@
 <template>
   <Layout>
     <div class="minimal-container">
-      <!-- Header compacto con navegación -->
+      <!-- Header ultra compacto en una sola línea -->
       <div class="compact-header">
-        <div class="header-info">
+        <div class="header-left">
           <h1 v-if="selectedLibro" class="book-title">{{ selectedLibro.nombre }}</h1>
           <p v-if="selectedLibro" class="book-author">{{ selectedLibro.autor }}</p>
         </div>
-        <div class="header-actions">
+
+        <div class="header-center">
           <!-- Controles de navegación de páginas -->
           <div v-if="paginas.length > 0" class="page-nav-controls">
-            <button @click="previousPage" :disabled="currentPageIndex === 0" class="nav-btn">
+            <button @click="previousPage" :disabled="currentPageIndex === 0" class="nav-btn-compact">
               ←
             </button>
-            <span class="page-counter">{{ currentPageIndex + 1 }} / {{ paginas.length }}</span>
+            <span class="page-counter-compact">{{ currentPageIndex + 1 }}/{{ paginas.length }}</span>
             <button
               @click="nextPage"
               :disabled="currentPageIndex === paginas.length - 1"
-              class="nav-btn"
+              class="nav-btn-compact"
             >
               →
             </button>
           </div>
-          <button @click="goBack" class="btn-secondary">← Volver</button>
-          <button v-if="authStore.isAuthenticated && selectedLibro && authStore.user?.id === selectedLibro.usuario_id" @click="showAddModal = true" class="btn-primary">+ Nueva Página</button>
+        </div>
+
+        <div class="header-right">
+          <button @click="goBack" class="btn-secondary-compact">← Volver</button>
+          <button
+            v-if="authStore.isAuthenticated && selectedLibro && authStore.user?.id === selectedLibro.usuario_id"
+            @click="showAddModal = true"
+            class="btn-primary-compact"
+          >
+            + Nueva
+          </button>
         </div>
       </div>
 
@@ -40,9 +50,9 @@
         <!-- Página actual completa -->
         <div class="single-page-container">
           <div class="single-page">
-            <div class="page-number">{{ currentPageIndex + 1 }}</div>
-            <div class="page-content">
-              <div class="page-header">
+            <!-- Header de página compacto -->
+            <div class="page-header-compact">
+              <div class="page-header-left">
                 <!-- Título -->
                 <div v-if="!editingPage">
                   <h3 class="page-title">
@@ -50,14 +60,14 @@
                   </h3>
                   <span class="page-type">{{ currentPage.tipo }}</span>
                 </div>
-                <div v-else class="edit-form">
+                <div v-else class="edit-form-inline">
                   <input
                     v-model="editForm.titulo"
                     type="text"
-                    class="edit-input title-input"
+                    class="edit-input-inline title-input"
                     placeholder="Título de la página"
                   />
-                  <select v-model="editForm.tipo" class="edit-select">
+                  <select v-model="editForm.tipo" class="edit-select-inline">
                     <option value="texto">Texto</option>
                     <option value="imagen">Imagen</option>
                     <option value="video">Video</option>
@@ -65,7 +75,38 @@
                 </div>
               </div>
 
-              <!-- Contenido -->
+              <!-- Controles inline pequeños (solo para el dueño del libro) -->
+              <div v-if="authStore.isAuthenticated && selectedLibro && authStore.user?.id === selectedLibro.usuario_id" class="page-controls">
+                <div v-if="!editingPage" class="action-buttons-inline">
+                  <button @click="startEditing" class="mini-btn-inline edit-btn" title="Editar página">
+                    ✏️
+                  </button>
+                  <button
+                    @click="deletePagina(currentPage.id)"
+                    class="mini-btn-inline delete-btn"
+                    title="Eliminar página"
+                  >
+                    🗑️
+                  </button>
+                </div>
+                <div v-else class="edit-buttons-inline">
+                  <button
+                    @click="saveEdit"
+                    class="mini-btn-inline save-btn"
+                    title="Guardar cambios"
+                    :disabled="saving"
+                  >
+                    {{ saving ? '⏳' : '💾' }}
+                  </button>
+                  <button @click="cancelEdit" class="mini-btn-inline cancel-btn" title="Cancelar edición">
+                    ❌
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contenido -->
+            <div class="page-content">
               <div class="page-text">
                 <div v-if="!editingPage">
                   <p>{{ currentPage.contenido }}</p>
@@ -77,35 +118,6 @@
                     placeholder="Contenido de la página..."
                     rows="8"
                   ></textarea>
-                </div>
-              </div>
-
-              <!-- Botones de acción pequeños (solo para el dueño del libro) -->
-              <div v-if="authStore.isAuthenticated && selectedLibro && authStore.user?.id === selectedLibro.usuario_id" class="page-actions">
-                <div v-if="!editingPage" class="action-buttons">
-                  <button @click="startEditing" class="mini-btn edit-btn" title="Editar página">
-                    ✏️
-                  </button>
-                  <button
-                    @click="deletePagina(currentPage.id)"
-                    class="mini-btn delete-btn"
-                    title="Eliminar página"
-                  >
-                    🗑️
-                  </button>
-                </div>
-                <div v-else class="edit-buttons">
-                  <button
-                    @click="saveEdit"
-                    class="mini-btn save-btn"
-                    title="Guardar cambios"
-                    :disabled="saving"
-                  >
-                    {{ saving ? '⏳' : '💾' }}
-                  </button>
-                  <button @click="cancelEdit" class="mini-btn cancel-btn" title="Cancelar edición">
-                    ❌
-                  </button>
                 </div>
               </div>
             </div>
@@ -207,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '@/config/api'
 import Layout from '@/components/Layout.vue'
@@ -391,17 +403,29 @@ const updateUltimaPaginaLeida = async (numeroPagina: number, paginaId: number) =
   }
 }
 
-// Navegación de páginas
+// Navegación de páginas con animación suave
 const nextPage = () => {
   if (currentPageIndex.value < paginas.value.length - 1) {
     currentPageIndex.value++
+    scrollToTop()
   }
 }
 
 const previousPage = () => {
   if (currentPageIndex.value > 0) {
     currentPageIndex.value--
+    scrollToTop()
   }
+}
+
+// Función para hacer scroll suave al principio de la página
+const scrollToTop = () => {
+  nextTick(() => {
+    const pageContent = document.querySelector('.page-content')
+    if (pageContent) {
+      pageContent.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  })
 }
 
 const goToPage = () => {
@@ -503,44 +527,128 @@ const closeModal = () => {
 
 .compact-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  justify-content: space-between;
+  padding: 8px 0;
   border-bottom: 1px solid #e5e5e5;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  gap: 12px;
 }
 
-.header-info {
+.header-left {
   flex: 1;
+  min-width: 0;
+}
+
+.header-center {
+  flex-shrink: 0;
+}
+
+.header-right {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
 }
 
 .book-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #333;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .book-author {
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
-  margin: 4px 0 0 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .page-nav-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #f8f9fa;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
   border: 1px solid #e5e5e5;
+}
+
+.nav-btn-compact {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #666;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.nav-btn-compact:hover:not(:disabled) {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.nav-btn-compact:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-counter-compact {
+  font-size: 11px;
+  font-weight: 500;
+  color: #666;
+  min-width: 35px;
+  text-align: center;
+}
+
+.btn-primary-compact,
+.btn-secondary-compact {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-primary-compact {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary-compact:hover {
+  background: #2563eb;
+}
+
+.btn-secondary-compact {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary-compact:hover {
+  background: #e5e7eb;
 }
 
 .btn-primary,
@@ -551,6 +659,12 @@ const closeModal = () => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  border: none;
 }
 
 .btn-primary {
@@ -586,16 +700,22 @@ const closeModal = () => {
   text-align: center;
 }
 
-.nav-btn {
-  padding: 8px 16px;
-  border: 2px solid #e5e5e5;
-  border-radius: 6px;
-  background: white;
-  color: #666;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+  .nav-btn {
+    padding: 8px 16px;
+    border: 2px solid #e5e5e5;
+    border-radius: 6px;
+    background: white;
+    color: #666;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
 
 .nav-btn:hover:not(:disabled) {
   border-color: #3b82f6;
@@ -843,30 +963,320 @@ const closeModal = () => {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .nav-controls {
+  .compact-header {
     flex-direction: column;
-    gap: 12px;
+    align-items: stretch;
+    gap: 16px;
+    padding: 12px 0;
   }
 
-  .page-selector {
-    flex-direction: column;
+  .header-info {
+    text-align: center;
+  }
+
+  .book-title {
+    font-size: 18px;
+  }
+
+  .book-author {
+    font-size: 12px;
+  }
+
+  .header-actions {
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
-  .page-select {
-    min-width: 100%;
+  .page-nav-controls {
+    order: -1;
+    justify-content: center;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 
   .single-page-container {
-    padding: 10px;
+    padding: 0;
   }
 
   .single-page {
-    min-height: 60vh;
+    min-height: 70vh;
+    margin: 0 -10px;
+    border-radius: 0;
   }
 
   .page-content {
-    padding: 20px;
+    padding: 16px;
+    max-height: calc(70vh - 60px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .page-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .page-actions {
+    top: 10px;
+    right: 10px;
+  }
+
+  /* Mejoras táctiles para móviles */
+  .nav-btn:active {
+    transform: scale(0.95);
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  /* Prevenir zoom en iOS */
+  .edit-input,
+  .edit-select,
+  .edit-textarea {
+    font-size: 16px;
+  }
+
+  /* Mejor scroll en móviles */
+  .page-content {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Ocultar acciones en móviles muy pequeños por defecto */
+  .page-actions {
+    opacity: 0.7;
+  }
+
+  .single-page:hover .page-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .compact-header {
+    padding: 8px 0;
+    gap: 12px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .page-nav-controls {
+    margin-bottom: 8px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    max-width: 200px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .single-page {
+    min-height: 80vh;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 14px;
+  }
+
+  .page-text {
+    font-size: 13px;
+  }
+
+  .page-actions {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    top: auto;
+    flex-direction: row;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 8px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .mini-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  /* Mejorar experiencia táctil */
+  .nav-btn,
+  .btn-primary,
+  .btn-secondary,
+  .mini-btn {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .book-title {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .book-author {
+    font-size: 11px;
+  }
+
+  .page-content {
+    padding: 10px;
+  }
+
+  .page-title {
+    font-size: 13px;
+  }
+
+  .page-text {
+    font-size: 12px;
+  }
+}
+
+.page-title {
+  font-size: 13px;
+}
+
+/* Nueva página compacta sin elementos flotantes */
+.single-page {
+  background: white;
+  min-height: calc(100vh - 120px);
+  position: relative;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: hidden;
+  transition: none;
+  border: none;
+}
+
+.page-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #fafafa;
+}
+
+.page-header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-controls {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.action-buttons-inline,
+.edit-buttons-inline {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-btn-inline {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.edit-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.edit-btn:hover {
+  background: #1976d2;
+  color: white;
+}
+
+.delete-btn {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+.save-btn {
+  background: #4caf50;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #45a049;
+}
+
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background: #ff9800;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #f57c00;
+}
+
+.edit-form-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-input-inline,
+.edit-select-inline {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: border-color 0.2s ease;
+  max-width: 200px;
+}
+
+.edit-input-inline:focus,
+.edit-select-inline:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.title-input {
+  font-size: 14px;
+  font-weight: 600;
 }
 </style>
