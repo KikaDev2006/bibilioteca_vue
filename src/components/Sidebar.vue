@@ -109,7 +109,7 @@
     <div class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm" @click="$emit('close')"></div>
 
     <!-- Sidebar -->
-    <nav class="fixed left-0 top-0 h-full w-64 bg-purple-900 text-gray-900 border-r border-purple-900 shadow-lg transform transition-transform duration-300 ease-in-out">
+    <nav class="fixed left-0 top-0 h-full w-64 bg-green-700 text-gray-900 border-r border-green-900 shadow-lg transform transition-transform duration-300 ease-in-out">
       <!-- Close button -->
       <div class="flex justify-end p-4">
         <button @click="$emit('close')" class="text-white hover:text-gray-300">
