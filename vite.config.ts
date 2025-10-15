@@ -6,15 +6,23 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [
     vue(),
-    mode !== 'production' ? vueDevTools() : null,
+    vueDevTools(), // Habilitado en todos los entornos
     tailwindcss()
-  ].filter(Boolean),
+  ],
+  define: {
+    // Definir globales para compatibilidad
+    global: 'globalThis',
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-}))
+  // Configuración específica para evitar problemas en SSR/construcción
+  ssr: {
+    noExternal: ['vue', '@vueuse/core']
+  }
+})
