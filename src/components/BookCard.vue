@@ -105,6 +105,13 @@
             ⭐
           </button>
           <button
+            @click.stop="downloadAsPDF"
+            class="action-btn-icon pdf-btn-icon"
+            title="Descargar como PDF"
+          >
+            📄
+          </button>
+          <button
             v-if="isOwner"
             @click.stop="$emit('edit', libro)"
             class="action-btn-icon edit-btn-icon"
@@ -176,6 +183,7 @@
 import { ref, computed } from 'vue'
 import type { Libro } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { usePaginasStore } from '@/stores/paginas'
 
 interface Props {
   libro: Libro
@@ -192,6 +200,7 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const paginasStore = usePaginasStore()
 const showRatingModal = ref(false)
 const selectedRating = ref(0)
 const hoverRating = ref(0)
@@ -266,6 +275,241 @@ const submitRating = () => {
   if (selectedRating.value > 0) {
     emit('rate', props.libro.id, selectedRating.value)
     closeRatingModal()
+  }
+}
+
+// Función para descargar el libro como PDF
+const downloadAsPDF = async () => {
+  try {
+    // Obtener todas las páginas primero
+    await paginasStore.fetchPaginas()
+
+    // Filtrar páginas del libro actual
+    const libroPaginas = paginasStore.paginas.filter(pagina => pagina.libro_id === props.libro.id)
+
+    // Crear contenido HTML para el PDF
+    const portadaImage = getImageUrl(props.libro.imagen_portada)
+
+    let paginasContent = ''
+    if (libroPaginas.length > 0) {
+      paginasContent = libroPaginas.map((pagina, index) => `
+        <div class="page-section">
+          <div class="page-header">
+            <h2 class="page-title">${pagina.titulo || `Página ${index + 1}`}</h2>
+            <div class="page-meta">Tipo: ${pagina.tipo}</div>
+          </div>
+          <div class="page-content">
+            ${pagina.contenido}
+          </div>
+          <div class="page-footer">Página ${index + 1} de ${libroPaginas.length}</div>
+        </div>
+      `).join('')
+    } else {
+      paginasContent = `
+        <div class="page-section">
+          <div class="page-content">
+            <p>Este libro aún no tiene páginas de contenido.</p>
+          </div>
+        </div>
+      `
+    }
+
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${props.libro.nombre}</title>
+        <style>
+          @page {
+            margin: 2cm;
+            size: A4;
+          }
+
+          body {
+            font-family: 'Georgia', serif;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            color: #333;
+          }
+
+          .portada {
+            page-break-after: always;
+            text-align: center;
+            padding: 50px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+
+          .portada-sin-imagen {
+            font-size: 120px;
+            margin: 0 auto 30px;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            border-radius: 10px;
+            border: 3px solid #ddd;
+          }
+
+          .portada-titulo {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+          }
+
+          .portada-info {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+          }
+
+          .page-section {
+            page-break-inside: avoid;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+          }
+
+          .page-header {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+          }
+
+          .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+          }
+
+          .page-meta {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-style: italic;
+          }
+
+          .page-content {
+            font-size: 16px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+          }
+
+          .page-footer {
+            text-align: right;
+            font-size: 12px;
+            color: #95a5a6;
+            border-top: 1px solid #ecf0f1;
+            padding-top: 10px;
+          }
+
+          .info-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+          }
+
+          .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+          }
+
+          .info-content {
+            color: #34495e;
+          }
+
+          .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #3498db;
+            color: #7f8c8d;
+            font-size: 12px;
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Portada del libro -->
+        <div class="portada">
+          ${portadaImage ? `<img src="${portadaImage}" alt="Portada de ${props.libro.nombre}" class="portada-imagen">` : `<div class="portada-sin-imagen">📖</div>`}
+          <div class="portada-titulo">${props.libro.nombre}</div>
+          <div class="portada-info">Autor: ${props.libro.autor}</div>
+          <div class="portada-info">Versión: ${props.libro.version}</div>
+          ${props.libro.genero ? `<div class="portada-info">Género: ${props.libro.genero}</div>` : ''}
+          <div class="portada-info">Color: ${props.libro.color_portada}</div>
+          ${props.libro.total_paginas ? `<div class="portada-info">${props.libro.total_paginas} páginas</div>` : `<div class="portada-info">${libroPaginas.length} páginas de contenido</div>`}
+        </div>
+
+        <!-- Información del libro -->
+        <div class="info-section">
+          <div class="info-title">📚 Información del Libro</div>
+          <div class="info-content">
+            <p><strong>Título:</strong> ${props.libro.nombre}</p>
+            <p><strong>Autor:</strong> ${props.libro.autor}</p>
+            <p><strong>Versión:</strong> ${props.libro.version}</p>
+            ${props.libro.genero ? `<p><strong>Género:</strong> ${props.libro.genero}</p>` : ''}
+            <p><strong>Color de portada:</strong> ${props.libro.color_portada}</p>
+            ${props.libro.imagen_portada ? `<p><strong>Imagen de portada:</strong> Sí (incluida en el PDF)</p>` : '<p><strong>Imagen de portada:</strong> No disponible</p>'}
+            <p><strong>Total de páginas de contenido:</strong> ${libroPaginas.length}</p>
+            ${props.libro.total_paginas ? `<p><strong>Páginas totales registradas:</strong> ${props.libro.total_paginas}</p>` : ''}
+            ${props.libro.ultima_pagina_leida ? `<p><strong>Última página leída:</strong> ${props.libro.ultima_pagina_leida}</p>` : '<p><strong>Última página leída:</strong> Aún no has empezado a leer</p>'}
+            ${props.libro.ultima_pagina_leida && props.libro.total_paginas ?
+              `<p><strong>Progreso de lectura:</strong> ${Math.round((props.libro.ultima_pagina_leida / props.libro.total_paginas) * 100)}%</p>` : ''}
+            ${props.libro.calificacion_promedio ? `<p><strong>Calificación promedio:</strong> ${props.libro.calificacion_promedio.toFixed(1)}/5 ⭐</p>` : ''}
+            <p><strong>Libro público:</strong> ${props.libro.es_publico ? 'Sí' : 'No'}</p>
+            <p><strong>Fecha de creación:</strong> ${new Date(props.libro.created_at).toLocaleDateString()}</p>
+            ${props.libro.updated_at !== props.libro.created_at ? `<p><strong>Última actualización:</strong> ${new Date(props.libro.updated_at).toLocaleDateString()}</p>` : ''}
+          </div>
+        </div>
+
+        <!-- Contenido del libro -->
+        ${paginasContent}
+
+        <!-- Footer -->
+        <div class="footer">
+          <p>Libro generado desde Biblioteca Vue</p>
+          <p>Fecha de generación: ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `
+
+    // Crear un blob con el contenido HTML
+    const blob = new Blob([pdfContent], { type: 'text/html' })
+
+    // Crear URL del blob
+    const url = URL.createObjectURL(blob)
+
+    // Crear enlace temporal para descargar
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${props.libro.nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_completo.html`
+
+    // Hacer clic en el enlace para iniciar la descarga
+    document.body.appendChild(link)
+    link.click()
+
+    // Limpiar
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+  } catch (error) {
+    console.error('Error al generar el PDF:', error)
+    alert('Error al generar el PDF. Por favor, inténtalo de nuevo.')
   }
 }
 </script>
@@ -404,6 +648,14 @@ const submitRating = () => {
   background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
 }
 
+.pdf-btn-icon {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.pdf-btn-icon:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+}
+
 /* Responsive para pantallas pequeñas */
 @media (max-width: 640px) {
   .action-btn-icon {
@@ -432,4 +684,5 @@ const submitRating = () => {
 .star-button:hover {
   transform: scale(1.3);
 }
+
 </style>
