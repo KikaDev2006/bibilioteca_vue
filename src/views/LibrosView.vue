@@ -1,36 +1,36 @@
 <template>
   <Layout>
     <template #filters="{ closeSidebar }">
-      <button 
+      <button
         @click="resetAllFilters(); closeSidebar?.()"
         :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': !mostrarSoloMisLibros && !mostrarSoloFavoritos && !mostrarSoloPendientes }]"
       >
         <span class="mr-3 text-xl">📚</span>
         Todos los Libros
       </button>
-      <button 
+      <button
         @click="toggleMisLibros(); closeSidebar?.()"
         :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloMisLibros }]"
       >
         <span class="mr-3 text-xl">📖</span>
         Mis Libros
       </button>
-      <button 
+      <button
         @click="toggleFavoritos(); closeSidebar?.()"
         :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloFavoritos }]"
       >
         <span class="mr-3 text-xl">❤️</span>
         Favoritos
       </button>
-      <button 
+      <button
         @click="togglePendientes(); closeSidebar?.()"
         :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloPendientes }]"
       >
         <span class="mr-3 text-xl">📖</span>
         Pendientes
       </button>
-      <button 
-        @click="createLibro(); closeSidebar?.()" 
+      <button
+        @click="createLibro(); closeSidebar?.()"
         class="flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors"
       >
         <span class="mr-3 text-xl">➕</span>
@@ -39,6 +39,45 @@
     </template>
 
     <div class="minimal-container">
+
+      <!-- Filtros para móviles (solo se muestran en móviles) -->
+      <div class="md:hidden flex flex-wrap gap-2 mb-4 p-4 bg-gray-50 rounded-lg">
+        <button
+          @click="resetAllFilters()"
+          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': !mostrarSoloMisLibros && !mostrarSoloFavoritos && !mostrarSoloPendientes }]"
+        >
+          <span class="mr-2 text-lg">📚</span>
+          Todos
+        </button>
+        <button
+          @click="toggleMisLibros()"
+          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloMisLibros }]"
+        >
+          <span class="mr-2 text-lg">📖</span>
+          Mis
+        </button>
+        <button
+          @click="toggleFavoritos()"
+          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloFavoritos }]"
+        >
+          <span class="mr-2 text-lg">❤️</span>
+          Fav
+        </button>
+        <button
+          @click="togglePendientes()"
+          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloPendientes }]"
+        >
+          <span class="mr-2 text-lg">📖</span>
+          Pend
+        </button>
+        <button
+          @click="createLibro()"
+          class="flex items-center px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors text-sm"
+        >
+          <span class="mr-2 text-lg">➕</span>
+          Nuevo
+        </button>
+      </div>
 
       <div v-if="loading" class="text-center py-8">
         <div
@@ -86,7 +125,7 @@
               ({{ librosFiltrados.length }} de {{ libros.length }} libros)
             </span>
           </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 mt-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1 sm:gap-2 mt-4">
             <BookCard
               v-for="libro in librosFiltrados"
               :key="libro.id"
@@ -910,6 +949,19 @@ onMounted(async () => {
   max-width: 100%;
   margin: 0;
   padding: 0;
+}
+
+/* Filtros móviles */
+@media (max-width: 768px) {
+  /* Ocultar filtros del slot en móviles */
+  .hidden.md\:flex {
+    display: none !important;
+  }
+
+  /* Estilos para filtros móviles */
+  .md\:hidden {
+    display: flex !important;
+  }
 }
 
 /* Estilos para el índice de géneros */

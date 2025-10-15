@@ -5,7 +5,7 @@
   >
     <!-- Portada del libro -->
     <div
-      class="book-cover h-48 rounded-t-lg flex items-center justify-center text-white text-lg font-bold relative overflow-hidden"
+      class="book-cover h-32 sm:h-36 md:h-40 rounded-t-lg flex items-center justify-center text-white text-lg font-bold relative overflow-hidden"
       :style="{ backgroundColor: getBookColor(libro.color_portada) }"
     >
       <!-- Imagen de portada si existe -->
@@ -22,8 +22,8 @@
           class="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-20"
         ></div>
         <div class="relative z-10 text-center">
-          <div class="text-4xl mb-2">📖</div>
-          <div class="text-sm opacity-90">{{ libro.nombre }}</div>
+          <div class="text-2xl sm:text-3xl md:text-4xl mb-1">📖</div>
+          <div class="text-xs sm:text-sm opacity-90">{{ libro.nombre }}</div>
         </div>
       </template>
 
@@ -41,8 +41,8 @@
     ></div>
 
     <!-- Información del libro -->
-    <div class="p-3 relative">
-      <h3 class="text-base font-bold text-gray-900 mb-1 leading-tight">{{ libro.nombre }}</h3>
+    <div class="p-2 sm:p-3 relative">
+      <h3 class="text-sm sm:text-base font-bold text-gray-900 mb-1 leading-tight">{{ libro.nombre }}</h3>
       <p class="text-xs text-gray-600 mb-1">
         <span class="font-semibold">Autor:</span> {{ libro.autor }}
       </p>
@@ -574,27 +574,27 @@ const downloadAsPDF = async () => {
 /* Badge de calificación */
 .rating-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
-  padding: 4px 10px;
-  border-radius: 20px;
+  padding: 2px 6px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 14px;
+  gap: 2px;
+  font-size: 10px;
   font-weight: 600;
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .star-icon {
-  font-size: 16px;
+  font-size: 8px;
 }
 
 .rating-value {
-  font-size: 14px;
+  font-size: 10px;
 }
 
 /* Botones de acciones - Solo iconos */
@@ -656,12 +656,96 @@ const downloadAsPDF = async () => {
   background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
 }
 
-/* Responsive para pantallas pequeñas */
-@media (max-width: 640px) {
+/* Responsive para diferentes tamaños de pantalla */
+@media (max-width: 480px) {
+  /* Móviles muy pequeños */
+  .book-card {
+    margin-bottom: 8px;
+  }
+
+  .book-cover {
+    height: 128px !important;
+  }
+
+  .p-2 {
+    padding: 6px !important;
+  }
+
+  .text-sm {
+    font-size: 12px !important;
+    line-height: 1.2;
+  }
+
+  .text-xs {
+    font-size: 10px !important;
+  }
+
+  .action-btn-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .star-icon {
+    font-size: 8px;
+  }
+
+  .rating-value {
+    font-size: 8px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 640px) {
+  /* Móviles medianos */
+  .book-cover {
+    height: 144px !important;
+  }
+
+  .p-2 {
+    padding: 8px !important;
+  }
+
   .action-btn-icon {
     width: 24px;
     height: 24px;
     font-size: 12px;
+  }
+
+  .rating-badge {
+    top: 6px;
+    right: 6px;
+    padding: 2px 4px;
+    font-size: 9px;
+  }
+
+  .star-icon {
+    font-size: 9px;
+  }
+
+  .rating-value {
+    font-size: 9px;
+  }
+}
+
+@media (min-width: 641px) {
+  /* Tablets y desktop */
+  .book-cover {
+    height: 160px !important;
+  }
+
+  .rating-badge {
+    top: 8px;
+    right: 8px;
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .star-icon {
+    font-size: 10px;
+  }
+
+  .rating-value {
+    font-size: 10px;
   }
 }
 

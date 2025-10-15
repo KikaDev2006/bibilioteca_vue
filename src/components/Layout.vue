@@ -139,3 +139,19 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<style scoped>
+/* Estilos básicos responsivos */
+@media (max-width: 768px) {
+  /* Mejorar espaciado en móviles */
+  .flex-1.overflow-y-auto {
+    padding: 1rem;
+  }
+
+  /* Asegurar que la barra superior se vea bien */
+  .h-16 {
+    height: auto;
+    min-height: 4rem;
+  }
+}
+</style>
