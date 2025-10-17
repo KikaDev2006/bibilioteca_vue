@@ -2,35 +2,40 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
-//import vueDevtools from 'vite-plugin-vue-devtools'
 
-// Mock para localStorage en producción
-const localStorageMock = {
-  getItem: () => null,
-  setItem: () => {},
-  clear: () => {}
-}
+// Export an async config so we can conditionally load dev-only plugins
+export default defineConfig(async ({ mode }) => {
+  const plugins: any[] = [vue(), tailwindcss()]
 
-export default defineConfig({
-  plugins: [
-    vue(),
-    //vueDevtools(), // Mantenemos en ambos entornos
-    tailwindcss()
-  ],
-  define: {
-    global: 'globalThis',
-    ...(process.env.NODE_ENV === 'production' ? { localStorage: localStorageMock } : {})
-  },
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+  if (mode !== 'production') {
+    try {
+      const devtools = await import('vite-plugin-vue-devtools')
+      const factory = (devtools && (devtools.default || devtools))
+      if (typeof factory === 'function') plugins.splice(1, 0, factory())
+    } catch (err) {
+      // don't fail the build if devtools isn't available
+      // eslint-disable-next-line no-console
+      console.warn('vite-plugin-vue-devtools not loaded:', err)
+    }
+  }
+
+  return {
+    plugins,
+    define: {
+      // keep global consistent with browser runtime
+      global: 'globalThis'
     },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
-  },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
+  }
 })

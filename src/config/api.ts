@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getItem, removeItem } from '@/utils/storage'
 
 // Función para obtener la URL del backend dinámicamente
 const getBackendUrl = () => {
@@ -23,7 +24,7 @@ export const api = axios.create({
 
 // Interceptor para agregar el token de autenticación y configurar headers
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -42,8 +43,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+  removeItem('token')
+  removeItem('user')
       window.location.href = '/login'
     }
     return Promise.reject(error)

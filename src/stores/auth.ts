@@ -2,23 +2,24 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Usuario, LoginIn, LoginOut } from '@/types'
 import { api } from '@/config/api'
+import { getItem, setItem, removeItem } from '@/utils/storage'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<Usuario | null>(null)
-  const token = ref<string | null>(localStorage.getItem('token'))
+  const token = ref<string | null>(getItem('token'))
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
   // Inicializar usuario desde localStorage
   const initUser = () => {
-    const savedUser = localStorage.getItem('user')
+  const savedUser = getItem('user')
     if (savedUser) {
       try {
         user.value = JSON.parse(savedUser)
       } catch (error) {
         console.error('Error parsing saved user:', error)
-        localStorage.removeItem('user')
+  removeItem('user')
       }
     }
   }
@@ -38,8 +39,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = newToken
       user.value = usuario
 
-      localStorage.setItem('token', newToken)
-      localStorage.setItem('user', JSON.stringify(usuario))
+  setItem('token', newToken)
+  setItem('user', JSON.stringify(usuario))
 
       console.log('Auth Store: Token guardado:', newToken)
       console.log('Auth Store: Usuario guardado:', usuario)
@@ -72,8 +73,8 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       token.value = null
       user.value = null
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+  removeItem('token')
+  removeItem('user')
     }
   }
 
@@ -83,7 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.get<Usuario>('/usuario/me')
       user.value = response.data
-      localStorage.setItem('user', JSON.stringify(response.data))
+  setItem('user', JSON.stringify(response.data))
       return response.data
     } catch (error) {
       console.error('Error al obtener usuario actual:', error)
@@ -98,7 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.put(`/usuario/${user.value.id}`, userData)
       user.value = response.data
-      localStorage.setItem('user', JSON.stringify(response.data))
+  setItem('user', JSON.stringify(response.data))
       return response.data
     } catch (error) {
       console.error('Error al actualizar usuario:', error)
