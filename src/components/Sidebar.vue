@@ -1,8 +1,21 @@
 <template>
 <!-- component -->
 <div>
+  <!-- Mobile menu button (visible solo en móviles) -->
+  <button @click="$emit('open')" class="md:hidden fixed top-4 left-4 z-50 bg-green-600 text-white p-2 rounded-lg shadow-lg">
+    <Menu class="w-5 h-5" />
+  </button>
   <!-- Desktop Sidebar (cuando isOpen es false o undefined) -->
-  <nav v-if="!isOpen" class="hidden md:flex flex-col bg-green-700 w-64 h-screen px-4 text-gray-900 border border-purple-900">
+  <nav v-if="!isOpen" class="hidden md:flex flex-col bg-green-500 w-64 h-screen px-4 text-gray-900 border border-purple-900 relative overflow-hidden">
+    <!-- Background icons -->
+      <div class="absolute inset-0 opacity-20 pointer-events-none flex flex-wrap content-start justify-between p-4 text-green-800">
+      <BookOpen class="absolute top-1/4 left-1/4 w-6 h-6" />
+      <Pencil class="absolute top-1/3 right-1/5 w-5 h-5" />
+      <FileText class="absolute bottom-1/4 left-1/5 w-6 h-6" />
+      <BookOpen class="absolute top-1/5 right-1/4 w-6 h-6" />
+      <Pencil class="absolute bottom-1/3 left-1/3 w-5 h-5" />
+      <FileText class="absolute top-3/4 right-1/3 w-6 h-6" />
+    </div>
     <div class="flex items-center justify-center mt-8 px-4">
       <div class="flex items-center space-x-3">
         <!-- Avatar del usuario -->
@@ -228,6 +241,9 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+// Temporary component until lucide-vue is installed
+import { BookOpen, FileText, Pencil, Menu } from 'lucide-vue-next'
+
 interface Props {
   isOpen?: boolean
 }
@@ -236,8 +252,9 @@ const props = withDefaults(defineProps<Props>(), {
   isOpen: false
 })
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
+  open: []
   'create-book': []
 }>()
 
