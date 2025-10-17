@@ -1,26 +1,31 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import vueDevtools from 'vite-plugin-vue-devtools'
-// https://vite.dev/config/
+
+// Mock para localStorage en producción
+const localStorageMock = {
+  getItem: () => null,
+  setItem: () => {},
+  clear: () => {}
+}
+
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevtools(),
+    vueDevtools(), // Mantenemos en ambos entornos
     tailwindcss()
   ],
   define: {
-    // Definir globales para compatibilidad
     global: 'globalThis',
+    ...(process.env.NODE_ENV === 'production' ? { localStorage: localStorageMock } : {})
   },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  // Configuración limpia para evitar problemas
   build: {
     rollupOptions: {
       output: {
