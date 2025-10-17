@@ -51,22 +51,22 @@
       </p>
 
       <!-- Progreso de lectura -->
-      <div v-if="libro.total_paginas && libro.ultima_pagina_leida" class="mt-2">
+      <div class="mt-2">
         <div class="flex justify-between text-xs text-gray-600 mb-1">
           <span>Progreso</span>
-          <span>{{ Math.round((libro.ultima_pagina_leida / libro.total_paginas) * 100) }}%</span>
+          <span>{{ libro.total_paginas && libro.ultima_pagina_leida ? Math.round((libro.ultima_pagina_leida / libro.total_paginas) * 100) : 0 }}%</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2">
           <div
             class="h-2 rounded-full transition-all"
-            :style="{ 
-              width: `${(libro.ultima_pagina_leida / libro.total_paginas) * 100}%`,
-              backgroundColor: getBookColor(libro.color_portada)
+            :style="{
+              width: libro.total_paginas && libro.ultima_pagina_leida ? `${(libro.ultima_pagina_leida / libro.total_paginas) * 100}%` : '0%',
+              backgroundColor: libro.total_paginas && libro.ultima_pagina_leida ? getBookColor(libro.color_portada) : '#9ca3af'
             }"
           ></div>
         </div>
         <p class="text-xs text-gray-500 mt-1">
-          Página {{ libro.ultima_pagina_leida }} de {{ libro.total_paginas }}
+          {{ libro.total_paginas && libro.ultima_pagina_leida ? `Página ${libro.ultima_pagina_leida} de ${libro.total_paginas}` : 'No iniciado' }}
         </p>
       </div>
 
