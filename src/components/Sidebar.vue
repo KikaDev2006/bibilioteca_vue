@@ -238,7 +238,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   close: []
-  createBook: []
+  'create-book': []
 }>()
 
 const router = useRouter()

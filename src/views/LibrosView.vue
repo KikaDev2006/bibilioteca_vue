@@ -39,10 +39,10 @@
         ></div>
         <p class="mt-2 text-gray-600">Cargando libros...</p>
       </div>
-      <div v-else-if="libros.length > 0" class="books-container">
+      <div v-else-if="librosFiltrados.length > 0" class="books-container">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1 sm:gap-2 mt-4">
           <BookCard
-            v-for="libro in libros"
+            v-for="libro in librosFiltrados"
             :key="libro.id"
             :libro="libro"
             @click="selectLibro"
@@ -53,6 +53,15 @@
             @rate="rateLibro"
           />
         </div>
+      </div>
+      <div v-else-if="searchQuery && librosFiltrados.length === 0" class="text-center py-8">
+        <p class="text-gray-600">Libro no encontrado: "{{ searchQuery }}"</p>
+        <button
+          @click="clearSearch"
+          class="mt-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+        >
+          Limpiar búsqueda
+        </button>
       </div>
 
       <!-- Modal para crear/editar libro -->
@@ -279,26 +288,17 @@ const librosPorGenero = computed(() => {
 
 // Computed property para filtrar libros por género seleccionado y búsqueda
 const librosFiltrados = computed(() => {
-  let filtrados = libros.value
-
-  // Si estamos mostrando favoritos o pendientes, los libros ya vienen filtrados del backend
-  // Solo aplicar filtro de género si hay uno seleccionado
-  if (selectedGenero.value) {
-    filtrados = filtrados.filter((libro) => {
-      const generoNombre = libro.genero || 'Sin género'
-      return generoNombre === selectedGenero.value
-    })
-  }
-
-  // Aplicar filtro de búsqueda por título
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    filtrados = filtrados.filter((libro) =>
-      libro.nombre.toLowerCase().includes(query)
-    )
-  }
-
-  return filtrados
+  console.log('[DEBUG] Filtering books for:', searchQuery.value)
+  
+  if (!searchQuery.value.trim()) return libros.value
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  const filtered = libros.value.filter(libro => 
+    libro.nombre.toLowerCase().includes(query)
+  )
+  
+  console.log('[DEBUG] Found', filtered.length, 'matches')
+  return filtered
 })
 
 // Computed property para el título de la sección
@@ -845,6 +845,7 @@ onMounted(async () => {
 
   // Agregar listener para eventos de búsqueda del Layout
   const handleSearchEvent = (event: CustomEvent) => {
+    console.log('[DEBUG] Received search:', event.detail.query)
     searchQuery.value = event.detail.query || ''
   }
 
@@ -855,6 +856,14 @@ onMounted(async () => {
     window.removeEventListener('search-query', handleSearchEvent as EventListener)
   })
 })
+
+// Función para limpiar búsqueda
+const clearSearch = () => {
+  console.log('[DEBUG] Clearing search from LibrosView')
+  window.dispatchEvent(new CustomEvent('search-query', {
+    detail: { query: '' }
+  }))
+}
 </script>
 
 <style scoped>
