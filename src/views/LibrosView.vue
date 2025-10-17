@@ -1,5 +1,5 @@
 <template>
-  <Layout>
+  <Layout @create-book="createLibro">
     <template #filters="{ closeSidebar }">
       <button
         @click="resetAllFilters(); closeSidebar?.()"
@@ -23,61 +23,15 @@
         Favoritos
       </button>
       <button
-        @click="togglePendientes(); closeSidebar?.()"
-        :class="['flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors', { 'bg-green-800 bg-opacity-50': mostrarSoloPendientes }]"
+        disabled
+        class="flex items-center px-4 py-2 text-white rounded-2xl opacity-50 cursor-not-allowed"
       >
         <span class="mr-3 text-xl">📖</span>
         Pendientes
       </button>
-      <button
-        @click="createLibro(); closeSidebar?.()"
-        class="flex items-center px-4 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-2xl transition-colors"
-      >
-        <span class="mr-3 text-xl">➕</span>
-        Nuevo Libro
-      </button>
     </template>
 
     <div class="minimal-container">
-
-      <!-- Filtros para móviles (solo se muestran en móviles) -->
-      <div class="md:hidden flex flex-wrap gap-2 mb-4 p-4 bg-gray-50 rounded-lg">
-        <button
-          @click="resetAllFilters()"
-          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': !mostrarSoloMisLibros && !mostrarSoloFavoritos && !mostrarSoloPendientes }]"
-        >
-          <span class="mr-2 text-lg">📚</span>
-          Todos
-        </button>
-        <button
-          @click="toggleMisLibros()"
-          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloMisLibros }]"
-        >
-          <span class="mr-2 text-lg">📖</span>
-          Mis
-        </button>
-        <button
-          @click="toggleFavoritos()"
-          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloFavoritos }]"
-        >
-          <span class="mr-2 text-lg">❤️</span>
-          Fav
-        </button>
-        <button
-          @click="togglePendientes()"
-          :class="['flex items-center px-3 py-2 text-white hover:bg-green-800 hover:bg-opacity-50 rounded-xl transition-colors text-sm', { 'bg-green-800 bg-opacity-50': mostrarSoloPendientes }]"
-        >
-          <span class="mr-2 text-lg">📖</span>
-          Pend
-        </button>
-        <button
-          @click="createLibro()"
-          class="flex items-center px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors text-sm"
-        >
-          <span class="mr-2 text-lg">➕</span>
-          Nuevo
-        </button>
-      </div>
 
       <div v-if="loading" class="text-center py-8">
         <div
@@ -86,58 +40,18 @@
         <p class="mt-2 text-gray-600">Cargando libros...</p>
       </div>
       <div v-else-if="libros.length > 0" class="books-container">
-        <!-- Cards de géneros para filtrar -->
-        <div class="genre-cards-container">
-          <!-- Card "Todos" -->
-          <div
-            @click="selectedGenero = null"
-            :class="['genre-card', { active: selectedGenero === null }]"
-            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-          >
-            <div class="genre-card-content">
-              <div class="genre-card-icon">📚</div>
-              <div class="genre-card-name">Todos</div>
-              <div class="genre-card-count">{{ libros.length }}</div>
-            </div>
-          </div>
-
-          <!-- Cards de géneros -->
-          <div
-            v-for="(generoGroup, index) in librosPorGenero"
-            :key="generoGroup.genero"
-            @click="selectedGenero = generoGroup.genero"
-            :class="['genre-card', { active: selectedGenero === generoGroup.genero }]"
-            :style="{ background: getGenreColor(index) }"
-          >
-            <div class="genre-card-content">
-              <div class="genre-card-icon">{{ getGenreIcon(generoGroup.genero) }}</div>
-              <div class="genre-card-name">{{ generoGroup.genero }}</div>
-              <div class="genre-card-count">{{ generoGroup.libros?.length || 0 }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Libros filtrados por género -->
-        <div class="filtered-books-section">
-          <h2 class="section-title">
-            {{ tituloSeccion }}
-            <span v-if="librosFiltrados.length !== libros.length" class="text-sm font-normal text-gray-500">
-              ({{ librosFiltrados.length }} de {{ libros.length }} libros)
-            </span>
-          </h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1 sm:gap-2 mt-4">
-            <BookCard
-              v-for="libro in librosFiltrados"
-              :key="libro.id"
-              :libro="libro"
-              @click="selectLibro"
-              @edit="editLibro"
-              @delete="deleteLibro"
-              @toggle-favorito="toggleFavorito"
-              @toggle-pendiente="togglePendiente"
-              @rate="rateLibro"
-            />
-          </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1 sm:gap-2 mt-4">
+          <BookCard
+            v-for="libro in libros"
+            :key="libro.id"
+            :libro="libro"
+            @click="selectLibro"
+            @edit="editLibro"
+            @delete="deleteLibro"
+            @toggle-favorito="toggleFavorito"
+            @toggle-pendiente="togglePendiente"
+            @rate="rateLibro"
+          />
         </div>
       </div>
 

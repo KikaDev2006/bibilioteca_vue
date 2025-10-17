@@ -86,6 +86,14 @@
           </router-link>
         </li>
 
+        <!-- Crear libro button -->
+        <li class="mb-2 px-4 py-4 text-gray-100 flex flex-row border-gray-300 hover:text-black hover:bg-gray-300 hover:font-bold rounded rounded-lg cursor-pointer">
+          <button @click="$emit('create-book')" class="flex items-center w-full text-left">
+            <span class="mr-3 text-xl">📝</span>
+            Crear libro
+          </button>
+        </li>
+
         <!-- Logout button -->
         <li class="mb-2 px-4 py-4 text-gray-100 flex flex-row border-gray-300 hover:text-black hover:bg-gray-300 hover:font-bold rounded rounded-lg cursor-pointer">
           <button @click="handleLogout" class="flex items-center w-full text-left">
@@ -187,6 +195,14 @@
               </router-link>
             </li>
 
+            <!-- Crear libro button -->
+            <li class="px-4 py-3 text-gray-100 flex flex-row hover:text-black hover:bg-gray-300 hover:font-bold rounded-lg cursor-pointer">
+              <button @click="$emit('create-book')" class="flex items-center w-full text-left">
+                <span class="mr-3 text-xl">📝</span>
+                Crear libro
+              </button>
+            </li>
+
             <!-- Logout button -->
             <li class="px-4 py-3 text-gray-100 flex flex-row hover:text-black hover:bg-gray-300 hover:font-bold rounded-lg cursor-pointer">
               <button @click="handleLogoutAndClose" class="flex items-center w-full text-left">
@@ -222,6 +238,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   close: []
+  createBook: []
 }>()
 
 const router = useRouter()
