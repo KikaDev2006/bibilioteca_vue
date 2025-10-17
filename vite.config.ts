@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
-import vueDevtools from 'vite-plugin-vue-devtools'
+//import vueDevtools from 'vite-plugin-vue-devtools'
 
 // Mock para localStorage en producción
 const localStorageMock = {
@@ -14,7 +14,7 @@ const localStorageMock = {
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevtools(), // Mantenemos en ambos entornos
+    //vueDevtools(), // Mantenemos en ambos entornos
     tailwindcss()
   ],
   define: {
